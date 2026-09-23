@@ -41,6 +41,7 @@
                                 <% }) %>
                             </div>
                             <div class="admin-room-actions">
+                                <a href="/admin/room/<%= room.id %>/monitor" class="btn btn-sm btn-primary">👁 Pantau</a>
                                 <form method="POST" action="/admin/room/<%= room.id %>/payout" class="payout-form">
                                     <select name="winnerId" class="select-sm" required>
                                         <option value="">Pilih Pemenang</option>

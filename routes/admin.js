@@ -101,6 +101,34 @@ router.post('/room/:id/edit', requireAdmin, async (req, res) => {
 });
 
 // ==========================================
+// MONITOR ROOM CHAT (ADMIN)
+// ==========================================
+router.get('/room/:id/monitor', requireAdmin, async (req, res) => {
+    try {
+        const [rooms] = await req.db.execute('SELECT * FROM rooms WHERE id = ?', [req.params.id]);
+        const room = rooms[0];
+        if (!room) return res.redirect('/admin');
+        if (!room.inProgress) return res.redirect('/admin');
+
+        const [players] = await req.db.execute('SELECT userId, name, joinedAt FROM room_players WHERE roomId = ?', [room.id]);
+        room.players = players;
+
+        const [msgs] = await req.db.execute('SELECT * FROM messages WHERE roomId = ? ORDER BY time ASC', [room.id]);
+
+        res.render('admin-monitor', {
+            user: req.session.admin,
+            room,
+            messages: msgs,
+            formatRupiah,
+            adminKey: process.env.SESSION_SECRET || 'ft-platform-secret-key-2026'
+        });
+    } catch (err) {
+        console.error('Error loading admin monitor:', err);
+        res.redirect('/admin');
+    }
+});
+
+// ==========================================
 // APPROVE TRANSACTION
 // ==========================================
 router.post('/transaction/:id/approve', requireAdmin, async (req, res) => {

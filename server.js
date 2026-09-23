@@ -11,6 +11,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
+const ADMIN_KEY = process.env.SESSION_SECRET || 'ft-platform-secret-key-2026';
 
 // ==========================================
 // MIDDLEWARE
@@ -123,6 +124,58 @@ io.on('connection', (socket) => {
             });
         } catch (err) {
             console.error('Error marking messages seen:', err);
+        }
+    });
+
+    socket.on('admin-message', async (data) => {
+        if (socket.handshake.auth?.adminKey !== ADMIN_KEY) return;
+        const { roomId, text } = data || {};
+        const cleanText = String(text || '').trim();
+        if (!roomId || !cleanText) return;
+
+        try {
+            const msgId = Date.now().toString();
+            await db.execute(
+                'INSERT INTO messages (id, roomId, senderName, text, image, isSystem, time) VALUES (?, ?, ?, ?, NULL, 1, NOW())',
+                [msgId, roomId, '👮 Admin', cleanText]
+            );
+            io.to(roomId).emit('new-message', {
+                id: msgId,
+                from: '👮 Admin',
+                text: cleanText,
+                image: null,
+                isSystem: true,
+                time: new Date().toISOString()
+            });
+        } catch (err) {
+            console.error('Error sending admin message:', err);
+        }
+    });
+
+    socket.on('admin-broadcast', async (data) => {
+        if (socket.handshake.auth?.adminKey !== ADMIN_KEY) return;
+        const cleanText = String((data && data.text) || '').trim();
+        if (!cleanText) return;
+
+        try {
+            const [rooms] = await db.execute('SELECT id FROM rooms WHERE inProgress = 1');
+            for (const room of rooms) {
+                const msgId = Date.now().toString() + '-' + room.id;
+                await db.execute(
+                    'INSERT INTO messages (id, roomId, senderName, text, image, isSystem, time) VALUES (?, ?, ?, ?, NULL, 1, NOW())',
+                    [msgId, room.id, '👮 Admin', cleanText]
+                );
+                io.to(room.id).emit('new-message', {
+                    id: msgId,
+                    from: '👮 Admin',
+                    text: cleanText,
+                    image: null,
+                    isSystem: true,
+                    time: new Date().toISOString()
+                });
+            }
+        } catch (err) {
+            console.error('Error broadcasting admin message:', err);
         }
     });
 
