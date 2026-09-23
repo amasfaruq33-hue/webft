@@ -144,8 +144,33 @@ io.on('connection', (socket) => {
 });
 
 // ==========================================
-// START SERVER
+// INIT DATABASE & START SERVER
 // ==========================================
-server.listen(PORT, () => {
-    console.log(`RICO FT running on http://localhost:${PORT}`);
+const fs = require('fs');
+
+async function initDatabase() {
+    try {
+        const connection = await db.getConnection();
+        console.log('Database connected successfully');
+
+        const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+        const statements = schema
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+        for (const stmt of statements) {
+            await connection.execute(stmt);
+        }
+        console.log('Database schema initialized');
+        connection.release();
+    } catch (err) {
+        console.error('Database init error:', err.message);
+    }
+}
+
+initDatabase().then(() => {
+    server.listen(PORT, () => {
+        console.log(`RICO FT running on http://localhost:${PORT}`);
+    });
 });
