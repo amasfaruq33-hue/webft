@@ -10,6 +10,40 @@
     <% if (typeof announcement !== 'undefined' && announcement) { %>
         <div class="announce-marquee"><div class="announce-track"><span><%= announcement %></span><span><%= announcement %></span></div></div>
     <% } %>
+    <div class="announce-popup" id="announcePopup">
+        <div class="announce-popup-content">
+            <div class="announce-popup-icon">📢</div>
+            <div class="announce-popup-title">PENGUMUMAN ADMIN</div>
+            <div class="announce-popup-text" id="announcePopupText"></div>
+            <button class="btn btn-primary btn-full" id="announcePopupOK">OK, MENGERTI!</button>
+        </div>
+    </div>
+    <script>
+        window.showAnnouncePopup = function (text) {
+            var popup = document.getElementById('announcePopup');
+            if (!popup) return;
+            document.getElementById('announcePopupText').textContent = text;
+            popup.classList.add('show');
+            clearTimeout(window.__announceT);
+            window.__announceT = setTimeout(function () { popup.classList.remove('show'); }, 8000);
+        };
+        (function () {
+            var ok = document.getElementById('announcePopupOK');
+            if (ok) ok.addEventListener('click', function () {
+                document.getElementById('announcePopup').classList.remove('show');
+            });
+            <% if (typeof announcement !== 'undefined' && announcement) { %>
+                var text = '<%= announcement %>';
+                var seen = JSON.parse(localStorage.getItem('announce-seen') || '[]');
+                if (seen.indexOf(text) === -1) {
+                    seen.push(text);
+                    if (seen.length > 20) seen.shift();
+                    localStorage.setItem('announce-seen', JSON.stringify(seen));
+                    window.showAnnouncePopup(text);
+                }
+            <% } %>
+        })();
+    </script>
     <div class="auth-container">
         <div class="auth-logo">🎮</div>
         <h1>RICO FT</h1>

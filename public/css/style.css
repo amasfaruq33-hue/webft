@@ -1235,6 +1235,65 @@ body::before {
     text-overflow: ellipsis;
 }
 
+.announce-popup {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4000;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.announce-popup.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.announce-popup-content {
+    width: 90%;
+    max-width: 400px;
+    background: linear-gradient(160deg, #2a1a05, #1a0e00 60%);
+    border: 2px solid #d4af37;
+    border-radius: 20px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+    animation: announce-pop 0.35s ease;
+}
+
+.announce-popup-icon {
+    font-size: 46px;
+    margin-bottom: 8px;
+}
+
+.announce-popup-title {
+    color: #d4af37;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.announce-popup-text {
+    color: #fff;
+    font-size: 16px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 20px;
+}
+
+@keyframes announce-pop {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
 .auth-page .announce-marquee,
 .chat-page .announce-marquee {
     position: fixed;
