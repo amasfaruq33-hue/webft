@@ -38,7 +38,7 @@
                             </div>
                         <% } %>
                         <% if (msg.text) { %>
-                            <div class="chat-text system-text"><%- msg.text.replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>') %></div>
+                            <div class="chat-text system-text"><%- formatMessageText(msg.text, []).replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>') %></div>
                         <% } %>
                         <div class="chat-time"><%= new Date(msg.time).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) %></div>
                     </div>
@@ -51,7 +51,7 @@
                             </div>
                         <% } %>
                         <% if (msg.text) { %>
-                            <div class="chat-text"><%= msg.text %></div>
+                            <div class="chat-text"><%- formatMessageText(msg.text, playerNames) %></div>
                         <% } %>
                         <div class="chat-meta">
                             <span class="chat-time"><%= new Date(msg.time).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) %></span>
@@ -63,6 +63,7 @@
 
         <!-- Admin Input -->
         <div class="chat-input-area">
+            <div class="chat-identity">💬 Kamu: <strong>👮 Admin</strong></div>
             <form class="chat-form" id="chatForm">
                 <input type="text" id="chatInput" placeholder="Ketik pesan sebagai Admin..." autocomplete="off" maxlength="500">
                 <button type="submit" class="btn btn-send">Kirim</button>
@@ -78,6 +79,7 @@
     <script>
         const socket = io({ auth: { adminKey: '<%= adminKey %>' } });
         const roomId = '<%= room.id %>';
+        const roomPlayers = <%- JSON.stringify(playerNames).replace(/</g, '\\u003c') %>;
         const chatForm = document.getElementById('chatForm');
         const chatInput = document.getElementById('chatInput');
         const chatMessages = document.getElementById('chatMessages');
@@ -107,16 +109,16 @@
             div.dataset.msgId = msg.id;
             if (!msg.isSystem) div.dataset.from = msg.from;
 
-            let html = `<div class="chat-sender ${msg.isSystem ? 'system-sender' : ''}">${msg.from}</div>`;
+            let html = `<div class="chat-sender ${msg.isSystem ? 'system-sender' : ''}">${escHtml(msg.from)}</div>`;
             if (msg.image) {
                 html += `<div class="chat-image"><img src="/uploads/${msg.image}" alt="foto" onclick="window.open(this.src)"></div>`;
             }
             if (msg.text) {
                 if (msg.isSystem) {
-                    const formatted = msg.text.replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+                    const formatted = formatChatText(msg.text).replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>');
                     html += `<div class="chat-text system-text">${formatted}</div>`;
                 } else {
-                    html += `<div class="chat-text">${msg.text}</div>`;
+                    html += `<div class="chat-text">${formatChatText(msg.text)}</div>`;
                 }
             }
             if (msg.isSystem) {
@@ -140,6 +142,21 @@
                 showToast('📢 Pesan admin terkirim');
             }
         });
+
+        // Mention formatting (escape + highlight @Nama)
+        function escHtml(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function formatChatText(text) {
+            let out = escHtml(text);
+            const names = roomPlayers.slice().sort((a, b) => b.length - a.length);
+            for (const n of names) {
+                const escName = escHtml(n);
+                const re = new RegExp('@' + escName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                out = out.replace(re, '<span class="mention">@' + escName + '</span>');
+            }
+            return out;
+        }
 
         // Pairing notification
         socket.on('pairing-notification', (data) => {

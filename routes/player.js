@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
 const { requireLogin } = require('../middleware/auth');
-const { formatRupiah, generateId } = require('../utils/helpers');
+const { formatRupiah, generateId, formatMessageText } = require('../utils/helpers');
 
 function shuffleArray(arr) {
     const a = [...arr];
@@ -465,7 +465,8 @@ router.get('/room/:id/chat', requireLogin, async (req, res) => {
             });
         }
 
-        res.render('chat', { user, room, messages, formatRupiah });
+        const playerNames = players.map(p => p.name);
+        res.render('chat', { user, room, messages, formatRupiah, formatMessageText, playerNames });
     } catch (err) {
         console.error('Error loading chat:', err);
         res.redirect('/dashboard');

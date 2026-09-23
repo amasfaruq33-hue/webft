@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const { requireAdmin } = require('../middleware/auth');
-const { formatRupiah, generateId } = require('../utils/helpers');
+const { formatRupiah, generateId, formatMessageText } = require('../utils/helpers');
 
 // Admin credentials from env
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
@@ -114,11 +114,14 @@ router.get('/room/:id/monitor', requireAdmin, async (req, res) => {
 
         const [msgs] = await req.db.execute('SELECT * FROM messages WHERE roomId = ? ORDER BY time ASC', [room.id]);
 
+        const playerNames = players.map(p => p.name);
         res.render('admin-monitor', {
             user: req.session.admin,
             room,
             messages: msgs,
             formatRupiah,
+            formatMessageText,
+            playerNames,
             adminKey: process.env.SESSION_SECRET || 'ft-platform-secret-key-2026'
         });
     } catch (err) {
