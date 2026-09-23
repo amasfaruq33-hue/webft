@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - RICO FT</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container admin-auth">
+        <div class="auth-logo">⚙️</div>
+        <h1>ADMIN PANEL</h1>
+        <p class="auth-subtitle">Masuk sebagai admin</p>
+
+        <% if (error) { %>
+            <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form method="POST" action="/admin/login">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Username admin" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Password admin" required>
+            </div>
+            <button type="submit" class="btn btn-admin btn-full">MASUK ADMIN</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - RICO FT</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="admin-page">
+        <!-- Header -->
+        <div class="admin-header">
+            <div class="header-left">
+                <span class="logo-text">⚙️ ADMIN PANEL</span>
+            </div>
+            <div class="header-right">
+                <a href="/" class="btn btn-sm btn-outline">🏠 Lihat Website</a>
+                <a href="/admin/logout" class="btn btn-sm btn-outline">Keluar</a>
+            </div>
+        </div>
+
+        <div class="admin-content">
+            <!-- SEDANG BERMAIN -->
+            <% const playingRooms = rooms.filter(r => r.inProgress); %>
+            <% if (playingRooms.length > 0) { %>
+                <div class="admin-section admin-section-playing">
+                    <h2>🔴 Sedang Bermain (<%= playingRooms.length %>)</h2>
+                    <% playingRooms.forEach(room => { %>
+                        <div class="admin-room-card playing">
+                            <div class="admin-room-header">
+                                <strong><%= room.name %></strong>
+                                <span class="status-badge playing">SEDANG BERMAIN</span>
+                            </div>
+                            <div class="admin-room-info">
+                                Fee: Rp <%= formatRupiah(room.fee) %> | PP: Rp <%= formatRupiah(room.pp) %>
+                            </div>
+                            <div class="admin-room-players">
+                                Pemain: <%= room.players.length %>/4
+                                <% room.players.forEach(p => { %>
+                                    <span class="player-tag-sm"><%= p.name %></span>
+                                <% }) %>
+                            </div>
+                            <div class="admin-room-actions">
+                                <form method="POST" action="/admin/room/<%= room.id %>/payout" class="payout-form">
+                                    <select name="winnerId" class="select-sm" required>
+                                        <option value="">Pilih Pemenang</option>
+                                        <% room.players.forEach(p => { %>
+                                            <option value="<%= p.userId %>"><%= p.name %></option>
+                                        <% }) %>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-success"
+                                            onclick="return confirm('Set pemenang? Saldo akan +Rp <%= formatRupiah(room.pp) %>')">
+                                        🏆 Set Pemenang
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <!-- SELESAI (Bisa Undo) -->
+            <% const recentWinners = rooms.filter(r => r.winnerId && r.winnerSetAt); %>
+            <% const undoableRooms = recentWinners.filter(r => {
+                const elapsed = (Date.now() - new Date(r.winnerSetAt).getTime()) / 1000 / 60;
+                return elapsed < 5;
+            }); %>
+            <% if (undoableRooms.length > 0) { %>
+                <div class="admin-section admin-section-undo">
+                    <h2>↩ Bisa Undo (<%= undoableRooms.length %>)</h2>
+                    <% undoableRooms.forEach(room => {
+                        const elapsed = (Date.now() - new Date(room.winnerSetAt).getTime()) / 1000 / 60;
+                        const sisa = Math.ceil(5 - elapsed);
+                        const winnerName = room.players.find(p => p.userId === room.winnerId)?.name || '?';
+                    %>
+                        <div class="admin-room-card winner-pending">
+                            <div class="admin-room-header">
+                                <strong><%= room.name %></strong>
+                                <span class="status-badge winner">🏆 <%= winnerName %></span>
+                            </div>
+                            <div class="admin-room-info">
+                                PP: Rp <%= formatRupiah(room.pp) %> | Undo: <%= sisa %> menit lagi
+                            </div>
+                            <div class="admin-room-actions">
+                                <form method="POST" action="/admin/room/<%= room.id %>/undo-payout" style="display:inline">
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Batalkan pemenang? Saldo akan dikurangi.')">
+                                        ↩ Undo
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <!-- CREATE ROOM -->
+            <div class="admin-section">
+                <h2>➕ Buat Room Baru</h2>
+                <form method="POST" action="/admin/room/create" class="topup-form">
+                    <div class="form-row">
+                        <input type="text" name="name" placeholder="Nama room (misal: Room 10K)" required>
+                        <input type="number" name="fee" placeholder="Fee" required min="1000">
+                        <input type="number" name="pp" placeholder="PP / Hadiah" required min="1000">
+                        <button type="submit" class="btn btn-primary">Buat Room</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ROOM REQUESTS -->
+            <% const roomRequests = transactions.filter(t => t.type === 'request-room' && t.status === 'pending'); %>
+            <% if (roomRequests.length > 0) { %>
+                <div class="admin-section">
+                    <h2>📩 Request Room dari Player (<%= roomRequests.length %>)</h2>
+                    <% roomRequests.forEach(tx => { %>
+                        <div class="transaction-card">
+                            <div class="tx-info">
+                                <strong><%= tx.userName %></strong> request room: <em><%= tx.roomName %></em>
+                                <br>
+                                Fee: Rp <%= formatRupiah(tx.fee) %> | PP: Rp <%= formatRupiah(tx.pp) %>
+                                <br>
+                                <span class="text-muted"><%= new Date(tx.createdAt).toLocaleString('id-ID') %></span>
+                            </div>
+                            <div class="tx-actions">
+                                <form method="POST" action="/admin/request-room/<%= tx.id %>/approve" style="display:inline">
+                                    <button type="submit" class="btn btn-sm btn-success">✓ Buat Room</button>
+                                </form>
+                                <form method="POST" action="/admin/request-room/<%= tx.id %>/reject" style="display:inline">
+                                    <button type="submit" class="btn btn-sm btn-danger">✕ Tolak</button>
+                                </form>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <!-- ROOMS SECTION -->
+            <div class="admin-section">
+                <h2>🎮 Kelola Room (<%= rooms.length %>)</h2>
+                <% if (rooms.length === 0) { %>
+                    <p class="text-muted">Belum ada room. Buat room baru di atas!</p>
+                <% } %>
+                <div class="admin-rooms">
+                    <% rooms.forEach(room => { %>
+                        <div class="admin-room-card">
+                            <div class="admin-room-header">
+                                <strong><%= room.name %></strong>
+                                <% if (room.inProgress) { %>
+                                    <span class="status-badge playing">SEDANG BERMAIN</span>
+                                <% } else if (room.players.length >= 4) { %>
+                                    <span class="status-badge full">FULL</span>
+                                <% } else { %>
+                                    <span class="status-badge open">OPEN</span>
+                                <% } %>
+                            </div>
+                            <div class="admin-room-info">
+                                Fee: Rp <%= formatRupiah(room.fee) %> | PP: Rp <%= formatRupiah(room.pp) %>
+                            </div>
+                            <div class="admin-room-players">
+                                Pemain: <%= room.players.length %>/4
+                                <% room.players.forEach(p => { %>
+                                    <span class="player-tag-sm"><%= p.name %></span>
+                                <% }) %>
+                            </div>
+                            <div class="admin-room-actions">
+                                <a href="/admin/room/<%= room.id %>/edit" class="btn btn-sm btn-outline">Edit</a>
+                                <form method="POST" action="/admin/room/<%= room.id %>/reset" style="display:inline" onsubmit="return confirm('Reset room? Semua player akan dikeluarkan & fee dikembalikan.')">
+                                    <button type="submit" class="btn btn-sm btn-warning">Reset</button>
+                                </form>
+                                <form method="POST" action="/admin/room/<%= room.id %>/delete" style="display:inline" onsubmit="return confirm('HAPUS room ini permanen? Semua player akan dikeluarkan & fee dikembalikan.')">
+                                    <button type="submit" class="btn btn-sm btn-danger">🗑 Hapus</button>
+                                </form>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+
+            <!-- TRANSAKSI SECTION -->
+            <% const pendingTx = transactions.filter(t => t.type !== 'request-room'); %>
+            <div class="admin-section">
+                <h2>💸 Transaksi Pending (<%= pendingTx.length %>)</h2>
+                <% if (pendingTx.length === 0) { %>
+                    <p class="text-muted">Tidak ada transaksi pending</p>
+                <% } %>
+                <% pendingTx.forEach(tx => { %>
+                    <div class="transaction-card">
+                        <div class="tx-info">
+                            <strong><%= tx.userName %></strong> —
+                            <%= tx.type === 'deposit' ? '💰 Deposit' : '💸 Withdraw' %>
+                            Rp <%= formatRupiah(tx.amount) %>
+                            <% if (tx.bukti) { %>
+                                <a href="/uploads/<%= tx.bukti %>" target="_blank" class="btn btn-sm btn-outline">Lihat Bukti</a>
+                            <% } %>
+                            <% if (tx.rekening) { %>
+                                <span class="text-muted">→ <%= tx.rekening %></span>
+                            <% } %>
+                        </div>
+                        <div class="tx-actions">
+                            <form method="POST" action="/admin/transaction/<%= tx.id %>/approve" style="display:inline">
+                                <button type="submit" class="btn btn-sm btn-success">✓ Acc</button>
+                            </form>
+                            <form method="POST" action="/admin/transaction/<%= tx.id %>/reject" style="display:inline">
+                                <button type="submit" class="btn btn-sm btn-danger">✕ Tolak</button>
+                            </form>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+
+            <!-- TOP UP SECTION -->
+            <div class="admin-section">
+                <h2>💳 Top Up Player</h2>
+                <form method="POST" action="/admin/topup" class="topup-form">
+                    <div class="form-row">
+                        <select name="userId" required>
+                            <option value="">Pilih Player</option>
+                            <% users.forEach(u => { %>
+                                <option value="<%= u.id %>"><%= u.name %> (Rp <%= formatRupiah(u.saldo) %>)</option>
+                            <% }) %>
+                        </select>
+                        <input type="number" name="amount" placeholder="Nominal" required min="1">
+                        <button type="submit" class="btn btn-primary">Top Up</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ALL USERS SECTION -->
+            <div class="admin-section">
+                <h2>👥 Semua Player (<%= users.length %>)</h2>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Nama</th>
+                            <th>Saldo</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach(u => { %>
+                            <tr>
+                                <td><%= u.name %></td>
+                                <td>Rp <%= formatRupiah(u.saldo) %></td>
+                                <td><%= new Date(u.createdAt).toLocaleDateString('id-ID') %></td>
+                            </tr>
+                        <% }) %>
+                        <% if (users.length === 0) { %>
+                            <tr><td colspan="3" class="text-muted">Belum ada player</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- RIWAYAT TRANSAKSI -->
+            <div class="admin-section">
+                <h2>📜 Riwayat Transaksi</h2>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Player</th>
+                            <th>Tipe</th>
+                            <th>Detail</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% allTransactions.slice().reverse().forEach(tx => { %>
+                            <tr>
+                                <td><%= new Date(tx.createdAt).toLocaleDateString('id-ID') %></td>
+                                <td><%= tx.userName %></td>
+                                <td>
+                                    <% if (tx.type === 'deposit') { %>💰 Deposit<% } %>
+                                    <% if (tx.type === 'withdraw') { %>💸 Withdraw<% } %>
+                                    <% if (tx.type === 'topup') { %>💳 Top Up<% } %>
+                                    <% if (tx.type === 'payout') { %>🏆 Payout<% } %>
+                                    <% if (tx.type === 'request-room') { %>📩 Request Room<% } %>
+                                </td>
+                                <td>
+                                    <% if (tx.type === 'request-room') { %>
+                                        <%= tx.roomName %> (F:<%= formatRupiah(tx.fee) %> P:<%= formatRupiah(tx.pp) %>)
+                                    <% } else { %>
+                                        Rp <%= formatRupiah(tx.amount) %>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <span class="status-badge <%= tx.status %>"><%= tx.status %></span>
+                                </td>
+                            </tr>
+                        <% }) %>
+                        <% if (allTransactions.length === 0) { %>
+                            <tr><td colspan="5" class="text-muted">Belum ada transaksi</td></tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a0e00">
+    <title>Chat - <%= room.name %> - RICO FT</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="chat-page">
+    <div class="chat-container">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <a href="/room/<%= room.id %>" class="btn btn-sm btn-outline">← Kembali</a>
+            <div class="chat-room-info">
+                <h3><%= room.name %></h3>
+                <span>fee <%= formatRupiah(room.fee) %> | pp <%= formatRupiah(room.pp) %></span>
+                <span class="chat-slot"><%= room.players.length %>/4 pemain</span>
+                <% if (room.inProgress) { %>
+                    <span class="chat-status playing">🔴 BERMAIN</span>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="chat-messages" id="chatMessages">
+            <% if (messages.length === 0) { %>
+                <div class="chat-empty">Belum ada pesan. Mulai chat!</div>
+            <% } %>
+            <% messages.forEach(msg => { %>
+                <% if (msg.isSystem) { %>
+                    <div class="chat-bubble chat-system" data-msg-id="<%= msg.id %>">
+                        <div class="chat-sender system-sender"><%= msg.from %></div>
+                        <% if (msg.text) { %>
+                            <div class="chat-text system-text"><%- msg.text.replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>') %></div>
+                        <% } %>
+                        <div class="chat-time"><%= new Date(msg.time).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) %></div>
+                    </div>
+                <% } else { %>
+                    <div class="chat-bubble <%= msg.from === user.name ? 'own' : 'other' %>" data-msg-id="<%= msg.id %>" data-from="<%= msg.from %>">
+                        <div class="chat-sender"><%= msg.from %></div>
+                        <% if (msg.image) { %>
+                            <div class="chat-image">
+                                <img src="/uploads/<%= msg.image %>" alt="foto" onclick="window.open(this.src)">
+                            </div>
+                        <% } %>
+                        <% if (msg.text) { %>
+                            <div class="chat-text"><%= msg.text %></div>
+                        <% } %>
+                        <div class="chat-meta">
+                            <span class="chat-time"><%= new Date(msg.time).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}) %></span>
+                            <% if (msg.from === user.name) { %>
+                                <% const totalPlayers = room.players.length; %>
+                                <% const seenCount = msg.seenBy ? msg.seenBy.length : 1; %>
+                                <% if (seenCount >= totalPlayers && totalPlayers > 1) { %>
+                                    <span class="chat-check check-blue" data-msg-id="<%= msg.id %>">✓✓</span>
+                                <% } else { %>
+                                    <span class="chat-check check-sent" data-msg-id="<%= msg.id %>">✓✓</span>
+                                <% } %>
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+            <% }) %>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="chat-input-area">
+            <div class="chat-preview" id="imagePreview" style="display:none">
+                <img id="previewImg" src="">
+                <button class="btn-remove-img" onclick="removeImage()">✕</button>
+            </div>
+            <form class="chat-form" id="chatForm">
+                <label for="imageInput" class="btn btn-camera">📷</label>
+                <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewImage(event)">
+                <input type="text" id="chatInput" placeholder="Ketik pesan..." autocomplete="off">
+                <button type="submit" class="btn btn-send">Kirim</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const roomId = '<%= room.id %>';
+        const playerName = '<%= user.name %>';
+        const totalPlayers = <%= room.players.length %>;
+        let selectedImage = null;
+        const pendingSeen = new Set();
+
+        // Join room
+        socket.emit('join-room', roomId);
+
+        // Send message
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        const chatMessages = document.getElementById('chatMessages');
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+
+            if (!text && !selectedImage) return;
+
+            if (selectedImage) {
+                const formData = new FormData();
+                formData.append('image', selectedImage);
+
+                fetch('/upload-chat-image', {
+                    method: 'POST',
+                    body: formData
+                }).then(r => r.json()).then(data => {
+                    socket.emit('chat-message', {
+                        roomId,
+                        playerName,
+                        text,
+                        image: data.filename
+                    });
+                    chatInput.value = '';
+                    removeImage();
+                });
+            } else {
+                socket.emit('chat-message', {
+                    roomId,
+                    playerName,
+                    text,
+                    image: null
+                });
+                chatInput.value = '';
+            }
+        });
+
+        // Receive message
+        socket.on('new-message', (msg) => {
+            const isOwn = msg.from === playerName;
+            const isSystem = msg.isSystem;
+            const div = document.createElement('div');
+            div.className = isSystem ? 'chat-bubble chat-system' : `chat-bubble ${isOwn ? 'own' : 'other'}`;
+            div.dataset.msgId = msg.id;
+            if (!isSystem) div.dataset.from = msg.from;
+
+            let html = `<div class="chat-sender ${isSystem ? 'system-sender' : ''}">${msg.from}</div>`;
+            if (msg.image) {
+                html += `<div class="chat-image"><img src="/uploads/${msg.image}" alt="foto" onclick="window.open(this.src)"></div>`;
+            }
+            if (msg.text) {
+                if (isSystem) {
+                    const formatted = msg.text.replace(/\n/g, '<br>').replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+                    html += `<div class="chat-text system-text">${formatted}</div>`;
+                } else {
+                    html += `<div class="chat-text">${msg.text}</div>`;
+                }
+            }
+            if (!isSystem) {
+                html += `<div class="chat-meta">`;
+                const time = new Date(msg.time).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+                html += `<span class="chat-time">${time}</span>`;
+                if (isOwn) {
+                    html += `<span class="chat-check check-sent" data-msg-id="${msg.id}">✓✓</span>`;
+                }
+                html += `</div>`;
+            } else {
+                const time = new Date(msg.time).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+                html += `<div class="chat-time">${time}</div>`;
+            }
+
+            div.innerHTML = html;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Add to observer
+            if (!isSystem) {
+                observer.observe(div);
+            }
+
+            if (isSystem) {
+                showToast('🏆 Match Pairing sudah ditentukan!');
+            }
+        });
+
+        // Seen update
+        socket.on('seen-update', (data) => {
+            for (const msgId of data.messageIds) {
+                const el = document.querySelector(`.chat-check[data-msg-id="${msgId}"]`);
+                if (el && data.totalPlayers > 1) {
+                    el.classList.remove('check-sent');
+                    el.classList.add('check-blue');
+                }
+            }
+        });
+
+        // Pairing notification
+        socket.on('pairing-notification', (data) => {
+            showToast('🏆 P1: ' + data.p1 + ' vs ' + data.p2 + ' | P2: ' + data.p3 + ' vs ' + data.p4);
+        });
+
+        // Winner notification
+        socket.on('winner-notification', (data) => {
+            showToast('🏆 ' + data.winnerName + ' menang! Saldo +Rp ' + data.amount.toLocaleString('id-ID'));
+        });
+
+        function showToast(msg) {
+            let t = document.querySelector('.toast');
+            if (!t) {
+                t = document.createElement('div');
+                t.className = 'toast';
+                document.body.appendChild(t);
+            }
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // Image preview
+        function previewImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            selectedImage = file;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                document.getElementById('previewImg').src = ev.target.result;
+                document.getElementById('imagePreview').style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeImage() {
+            selectedImage = null;
+            document.getElementById('imageInput').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+
+        // ==========================================
+        // BLUE CHECKMARKS — Intersection Observer
+        // ==========================================
+        const observer = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    const bubble = entry.target;
+                    const msgId = bubble.dataset.msgId;
+                    const from = bubble.dataset.from;
+
+                    // Only mark other people's messages as seen by us
+                    if (from && from !== playerName && !pendingSeen.has(msgId)) {
+                        pendingSeen.add(msgId);
+                        socket.emit('message-seen', {
+                            roomId,
+                            userName: playerName,
+                            messageIds: [msgId]
+                        });
+                    }
+                }
+            }
+        }, { threshold: 0.5 });
+
+        // Observe existing messages
+        document.querySelectorAll('.chat-bubble[data-msg-id][data-from]').forEach(bubble => {
+            const from = bubble.dataset.from;
+            if (from && from !== playerName) {
+                observer.observe(bubble);
+            }
+        });
+
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    </script>
+</body>
+</html>

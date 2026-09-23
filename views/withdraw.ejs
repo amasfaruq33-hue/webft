@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Withdraw - RICO FT</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-logo">💸</div>
+        <h1>WITHDRAW</h1>
+        <p class="auth-subtitle">Tarik saldo ke rekening kamu</p>
+
+        <div class="info-box">
+            <p>Saldo kamu: <strong>Rp <%= user ? user.saldo.toLocaleString('id-ID') : '0' %></strong></p>
+        </div>
+
+        <% if (error) { %>
+            <div class="alert alert-error"><%= error %></div>
+        <% } %>
+        <% if (success) { %>
+            <div class="alert alert-success"><%= success %></div>
+        <% } %>
+
+        <form method="POST" action="/withdraw">
+            <div class="form-group">
+                <label>Nominal Withdraw</label>
+                <input type="number" name="amount" placeholder="Minimal Rp 1.000" required min="1000">
+            </div>
+            <div class="form-group">
+                <label>Rekening / E-Wallet Tujuan</label>
+                <input type="text" name="rekening" placeholder="DANA / OVO / Rekening Bank" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">KIRIM WITHDRAW</button>
+        </form>
+
+        <p class="auth-link"><a href="/dashboard">← Kembali ke Dashboard</a></p>
+    </div>
+</body>
+</html>

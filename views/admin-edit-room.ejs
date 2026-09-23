@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Room - RICO FT</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-logo">⚙️</div>
+        <h1>EDIT ROOM</h1>
+        <p class="auth-subtitle"><%= room.name %></p>
+
+        <% if (error) { %>
+            <div class="alert alert-error"><%= error %></div>
+        <% } %>
+        <% if (success) { %>
+            <div class="alert alert-success"><%= success %></div>
+        <% } %>
+
+        <form method="POST" action="/admin/room/<%= room.id %>/edit">
+            <div class="form-group">
+                <label>Nama Room</label>
+                <input type="text" name="name" value="<%= room.name %>" required>
+            </div>
+            <div class="form-group">
+                <label>Fee (Rp)</label>
+                <input type="number" name="fee" value="<%= room.fee %>" required min="0">
+            </div>
+            <div class="form-group">
+                <label>Pemenang / PP (Rp)</label>
+                <input type="number" name="pp" value="<%= room.pp %>" required min="0">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">SIMPAN</button>
+        </form>
+
+        <p class="auth-link"><a href="/admin">← Kembali ke Admin</a></p>
+    </div>
+</body>
+</html>

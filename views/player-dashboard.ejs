@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a0e00">
+    <title>RICO FT - Fast Tournament Free Fire</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <div class="header-bg-scroll">
+                <div class="header-bg-track">
+                    <img src="/images/backgroundatas.jpeg?v=2" alt="">
+                    <img src="/images/backgroundatas.jpeg?v=2" alt="">
+                    <img src="/images/backgroundatas.jpeg?v=2" alt="">
+                    <img src="/images/backgroundatas.jpeg?v=2" alt="">
+                </div>
+            </div>
+            <a href="/logout" class="btn btn-sm btn-outline btn-logout">Keluar</a>
+            <div class="header-center">
+                <div class="user-avatar"><%= user.name.charAt(0).toUpperCase() %></div>
+                <span class="user-name-hero"><%= user.name %></span>
+                <span class="logo-text-hero">RICO FT</span>
+            </div>
+            <div class="header-right">
+                <div class="saldo-badge">
+                    💰 Rp <%= formatRupiah(user.saldo) %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tagline -->
+        <div class="tagline-section">
+            <h2 class="tagline-title">⚡ RICO FT — Fast Tournament FF ⚡</h2>
+            <p class="tagline-desc">Main fair, menang langsung cair! Join room sekarang!</p>
+        </div>
+
+        <% if (rooms.length === 0) { %>
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-icon">🏠</div>
+                <h3>Belum Ada Room</h3>
+                <p>Admin belum membuat room. Kamu bisa request room!</p>
+                <form method="POST" action="/request-room" class="request-form">
+                    <input type="text" name="roomName" placeholder="Nama room (misal: Room 10K)" required>
+                    <input type="number" name="fee" placeholder="Fee (misal: 10000)" required min="1000">
+                    <input type="number" name="pp" placeholder="PP / Hadiah (misal: 30000)" required min="1000">
+                    <button type="submit" class="btn btn-primary">📩 REQUEST ROOM</button>
+                </form>
+                <div class="request-note">*Request akan dikirim ke admin untuk diapprove</div>
+            </div>
+        <% } else { %>
+            <!-- Search & Filter -->
+            <div class="filter-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Cari room..." oninput="filterRooms()">
+                </div>
+                <div class="filter-tags" id="filterTags">
+                    <button class="filter-tag active" data-filter="all" onclick="setFilter('all', this)">Semua</button>
+                    <button class="filter-tag" data-filter="11" onclick="setFilter('11', this)">11</button>
+                    <button class="filter-tag" data-filter="22" onclick="setFilter('22', this)">22</button>
+                    <button class="filter-tag" data-filter="33" onclick="setFilter('33', this)">33</button>
+                    <button class="filter-tag" data-filter="44" onclick="setFilter('44', this)">44</button>
+                    <div class="filter-divider"></div>
+                    <button class="filter-tag" data-filter="fee-1000" onclick="setFilter('fee-1000', this)">1K</button>
+                    <button class="filter-tag" data-filter="fee-2000" onclick="setFilter('fee-2000', this)">2K</button>
+                    <button class="filter-tag" data-filter="fee-3000" onclick="setFilter('fee-3000', this)">3K</button>
+                    <button class="filter-tag" data-filter="fee-4000" onclick="setFilter('fee-4000', this)">4K</button>
+                    <button class="filter-tag" data-filter="fee-5000" onclick="setFilter('fee-5000', this)">5K</button>
+                </div>
+            </div>
+
+            <!-- Room Grid -->
+            <div class="room-grid" id="roomGrid">
+                <% rooms.forEach(room => { %>
+                    <div class="room-card room-card-sm <%= room.inProgress ? 'room-playing' : (room.players.length >= 4 ? 'room-full' : '') %>"
+                         data-name="<%= room.name.toLowerCase() %>"
+                         data-fee="<%= room.fee %>">
+                        <div class="room-card-top">
+                            <div class="room-name"><%= room.name %></div>
+                            <div class="room-slot-inline">
+                                <span class="slot-count"><%= room.players.length %></span>/4
+                                <% if (room.inProgress) { %>
+                                    <span class="slot-badge playing">🔴</span>
+                                <% } else if (room.players.length >= 4) { %>
+                                    <span class="slot-badge full">FULL</span>
+                                <% } else { %>
+                                    <span class="slot-badge open">OPEN</span>
+                                <% } %>
+                            </div>
+                        </div>
+                        <div class="room-card-info">
+                            <span class="room-fee-sm">fee <%= formatRupiah(room.fee) %></span>
+                            <span class="room-pp-sm">pp <%= formatRupiah(room.pp) %></span>
+                        </div>
+                        <div class="room-players-sm">
+                            <% room.players.forEach(p => { %>
+                                <span class="player-tag-sm"><%= p.name %></span>
+                            <% }) %>
+                        </div>
+                        <div class="room-action">
+                            <% if (room.inProgress) { %>
+                                <button class="btn btn-disabled btn-sm" disabled>BERMAIN</button>
+                            <% } else if (room.players.length >= 4) { %>
+                                <button class="btn btn-disabled btn-sm" disabled>PENUH</button>
+                            <% } else if (room.players.find(p => p.userId === user.id)) { %>
+                                <a href="/room/<%= room.id %>/chat" class="btn btn-chat btn-sm">💬 MASUK ROOM</a>
+                            <% } else { %>
+                                <form method="POST" action="/room/<%= room.id %>/join" onsubmit="return confirm('Join <%= room.name %>?\nFee: Rp <%= formatRupiah(room.fee) %>\nHadiah: Rp <%= formatRupiah(room.pp) %>')">
+                                    <button type="submit" class="btn btn-primary btn-sm">JOIN</button>
+                                </form>
+                            <% } %>
+                        </div>
+                        <% if (!room.inProgress && room.players.length < 4) { %>
+                            <button class="btn-share-sm" onclick="copyLink('<%= room.id %>')">📋</button>
+                        <% } %>
+                    </div>
+                <% }) %>
+            </div>
+
+            <!-- Request Room -->
+            <div class="request-room-section">
+                <details class="request-details">
+                    <summary class="btn btn-sm btn-outline">📩 Request Room Baru</summary>
+                    <div class="request-room-form">
+                        <form method="POST" action="/request-room">
+                            <input type="text" name="roomName" placeholder="Nama room" required>
+                            <input type="number" name="fee" placeholder="Fee" required min="1000">
+                            <input type="number" name="pp" placeholder="PP / Hadiah" required min="1000">
+                            <button type="submit" class="btn btn-primary">KIRIM REQUEST</button>
+                        </form>
+                    </div>
+                </details>
+            </div>
+        <% } %>
+
+        <!-- Bottom Actions (Desktop) -->
+        <div class="bottom-actions">
+            <a href="/deposit" class="btn btn-deposit">💰 Deposit</a>
+            <a href="/withdraw" class="btn btn-withdraw">💸 Withdraw</a>
+        </div>
+    </div>
+
+    <!-- Bottom Nav (Mobile) -->
+    <nav class="bottom-nav">
+        <a href="/dashboard" class="nav-item active">🏠<span>Home</span></a>
+        <a href="/deposit" class="nav-item">💰<span>Deposit</span></a>
+        <a href="/withdraw" class="nav-item">💸<span>Withdraw</span></a>
+    </nav>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.on('room-update', () => location.reload());
+        socket.on('new-room', () => location.reload());
+
+        let currentFilter = 'all';
+
+        function setFilter(filter, el) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            filterRooms();
+        }
+
+        function filterRooms() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.room-card');
+
+            cards.forEach(card => {
+                const name = card.dataset.name;
+                const fee = parseInt(card.dataset.fee);
+
+                let matchSearch = !search || name.includes(search);
+                let matchFilter = currentFilter === 'all';
+
+                if (!matchFilter) {
+                    if (currentFilter === '11') matchFilter = name.includes('11');
+                    else if (currentFilter === '22') matchFilter = name.includes('22');
+                    else if (currentFilter === '33') matchFilter = name.includes('33');
+                    else if (currentFilter === '44') matchFilter = name.includes('44');
+                    else if (currentFilter === 'fee-1000') matchFilter = fee === 1000;
+                    else if (currentFilter === 'fee-2000') matchFilter = fee === 2000;
+                    else if (currentFilter === 'fee-3000') matchFilter = fee === 3000;
+                    else if (currentFilter === 'fee-4000') matchFilter = fee === 4000;
+                    else if (currentFilter === 'fee-5000') matchFilter = fee === 5000;
+                }
+
+                card.style.display = (matchSearch && matchFilter) ? '' : 'none';
+            });
+        }
+
+        function copyLink(roomId) {
+            const url = window.location.origin + '/join/' + roomId;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => showToast('Link disalin!'));
+            } else {
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('Link disalin!');
+            }
+        }
+
+        function showToast(msg) {
+            let t = document.querySelector('.toast');
+            if (!t) {
+                t = document.createElement('div');
+                t.className = 'toast';
+                document.body.appendChild(t);
+            }
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+    </script>
+</body>
+</html>

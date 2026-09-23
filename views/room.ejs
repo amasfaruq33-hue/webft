@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a0e00">
+    <title><%= room.name %> - RICO FT</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="room-page">
+        <div class="room-header">
+            <a href="/dashboard" class="btn btn-sm btn-outline">← Kembali</a>
+            <h2 class="room-title-clickable" onclick="showRules()"><%= room.name %> 📋</h2>
+            <div class="room-meta">
+                fee <%= formatRupiah(room.fee) %> | pp <%= formatRupiah(room.pp) %>
+            </div>
+            <p class="rules-hint">Klik nama room untuk lihat rules</p>
+
+            <!-- Salin Link -->
+            <% if (!room.inProgress && room.players.length < 4) { %>
+                <button class="btn btn-sm btn-outline btn-share-link" onclick="copyLink('<%= room.id %>')">📋 Salin Link Undang Teman</button>
+            <% } %>
+        </div>
+
+        <div class="room-detail">
+            <div class="room-status-section">
+                <h3>Status:
+                    <% if (room.inProgress) { %>
+                        <span class="text-playing">🔴 SEDANG BERMAIN</span>
+                    <% } else if (room.players.length >= 4) { %>
+                        <span class="text-full">FULL</span>
+                    <% } else { %>
+                        <span class="text-open">OPEN</span>
+                    <% } %>
+                </h3>
+                <div class="player-slots">
+                    <% for (let i = 0; i < 4; i++) { %>
+                        <div class="player-slot <%= room.players[i] ? 'filled' : 'empty' %>">
+                            <% if (room.players[i]) { %>
+                                <span class="slot-number"><%= i + 1 %></span>
+                                <span class="slot-name"><%= room.players[i].name %></span>
+                                <% if (room.players[i].userId === user.id) { %>
+                                    <span class="slot-you">(Kamu)</span>
+                                <% } %>
+                                <% if (room.players[i].userId === room.winnerId) { %>
+                                    <span class="slot-winner">🏆 MENANG</span>
+                                <% } %>
+                            <% } else { %>
+                                <span class="slot-number"><%= i + 1 %></span>
+                                <span class="slot-name">Kosong</span>
+                            <% } %>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <% const isPlayer = room.players.find(p => p.userId === user.id); %>
+            <% if (room.inProgress) { %>
+                <div class="room-playing-notice">
+                    🔴 SEDANG BERMAIN — Tunggu admin set pemenang
+                </div>
+                <% if (isPlayer) { %>
+                    <div class="room-chat-section">
+                        <a href="/room/<%= room.id %>/chat" class="btn btn-chat btn-full">💬 MASUK ROOM</a>
+                    </div>
+                <% } %>
+            <% } else if (isPlayer) { %>
+                <div class="room-chat-section">
+                    <a href="/room/<%= room.id %>/chat" class="btn btn-chat btn-full">💬 MASUK ROOM</a>
+                </div>
+                <div class="room-leave-section">
+                    <form method="POST" action="/room/<%= room.id %>/leave">
+                        <button type="submit" class="btn btn-danger btn-full" onclick="return confirm('Yakin mau keluar? Fee tidak dikembalikan!')">KELUAR DARI ROOM</button>
+                    </form>
+                </div>
+            <% } else if (room.players.length >= 4) { %>
+                <div class="room-full-notice">Room sudah penuh, tidak bisa join</div>
+            <% } else { %>
+                <div class="room-join-section">
+                    <p>Saldo kamu: <strong>Rp <%= formatRupiah(user.saldo) %></strong></p>
+                    <% if (user.saldo >= room.fee) { %>
+                        <form method="POST" action="/room/<%= room.id %>/join" onsubmit="return confirm('Apakah kamu yakin ingin join room ini?\n\nRoom: <%= room.name %>\nFee: Rp <%= formatRupiah(room.fee) %>\nPemenang: Rp <%= formatRupiah(room.pp) %>\n\nFee akan dipotong dari saldo kamu!')">
+                            <button type="submit" class="btn btn-primary btn-full">JOIN (Fee: Rp <%= formatRupiah(room.fee) %>)</button>
+                        </form>
+                    <% } else { %>
+                        <p class="text-warning">Saldo tidak cukup! <a href="/deposit">Deposit dulu</a></p>
+                    <% } %>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div class="modal-overlay" id="rulesModal" onclick="hideRules()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>📋 RULES FT</h2>
+                <button class="modal-close" onclick="hideRules()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="rule-item">
+                    <span class="rule-icon">👥</span>
+                    <div>
+                        <strong>Jumlah Pemain</strong>
+                        <p>Minimal 2, Maksimal 4 pemain per room</p>
+                    </div>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">💰</span>
+                    <div>
+                        <strong>Fee & Hadiah</strong>
+                        <p>Fee: Rp <%= formatRupiah(room.fee) %> / orang</p>
+                        <p>Pemenang: Rp <%= formatRupiah(room.pp) %></p>
+                    </div>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">⏰</span>
+                    <div>
+                        <strong>Waktu Main</strong>
+                        <p>Batas waktu 15 menit per sesi</p>
+                        <p>Sama-sama gamau oper = DUA DUANYA DIS</p>
+                    </div>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">🏆</span>
+                    <div>
+                        <strong>Menang</strong>
+                        <p>Tag sekali di chat, kirim nomor rekening/e-wallet</p>
+                        <p>Admin akan kirim hadiah ke pemenang</p>
+                    </div>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">🚫</span>
+                    <div>
+                        <strong>Dilarang</strong>
+                        <p>❌ Dilarang PM admin</p>
+                        <p>❌ Dilarang scam/bohong</p>
+                        <p>❌ Dilarang spam di chat</p>
+                    </div>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">⚠️</span>
+                    <div>
+                        <strong>Sanksi</strong>
+                        <p>Pelanggar = Banned permanen</p>
+                        <p>Dana hangus tanpa komplain</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-full" onclick="hideRules()">SAYA PAHAM</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const roomId = '<%= room.id %>';
+
+        // Join room
+        socket.emit('join-room', roomId);
+
+        function showRules() {
+            document.getElementById('rulesModal').classList.add('show');
+        }
+        function hideRules() {
+            document.getElementById('rulesModal').classList.remove('show');
+        }
+
+        function copyLink(id) {
+            const url = window.location.origin + '/join/' + id;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('Link disalin!');
+                });
+            } else {
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('Link disalin!');
+            }
+        }
+
+        function showToast(msg) {
+            let t = document.querySelector('.toast');
+            if (!t) {
+                t = document.createElement('div');
+                t.className = 'toast';
+                document.body.appendChild(t);
+            }
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        function formatRupiah(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        // Winner notification
+        socket.on('winner-notification', (data) => {
+            showToast('🏆 ' + data.winnerName + ' menang! Saldo +Rp ' + formatRupiah(data.amount));
+            setTimeout(() => location.reload(), 3000);
+        });
+
+        // Pairing notification
+        socket.on('pairing-notification', (data) => {
+            showToast('🏆 P1: ' + data.p1 + ' vs ' + data.p2 + ' | P2: ' + data.p3 + ' vs ' + data.p4);
+            setTimeout(() => location.reload(), 3000);
+        });
+
+        // Room update
+        socket.on('room-update', () => location.reload());
+    </script>
+</body>
+</html>

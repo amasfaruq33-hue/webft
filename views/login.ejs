@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - RICO FT</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-logo">🎮</div>
+        <h1>RICO FT</h1>
+        <p class="auth-subtitle">Masuk ke akun kamu</p>
+
+        <% if (error) { %>
+            <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <label>Nama</label>
+                <input type="text" name="name" placeholder="Masukkan nama" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Masukkan password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">MASUK</button>
+        </form>
+
+        <p class="auth-link">Belum punya akun? <a href="/register">Daftar disini</a></p>
+    </div>
+</body>
+</html>
