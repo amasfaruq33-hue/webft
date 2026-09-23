@@ -20,6 +20,26 @@
         </div>
 
         <div class="admin-content">
+            <!-- BROADCAST PENGUMUMAN -->
+            <div class="admin-section">
+                <h2>📢 Broadcast ke Semua (Teks Berjalan)</h2>
+                <form method="POST" action="/admin/broadcast" class="topup-form">
+                    <div class="form-row">
+                        <input type="text" name="text" placeholder="Teks pengumuman (tampil berjalan di atas layar player)" required maxlength="500">
+                        <button type="submit" class="btn btn-primary">📢 Broadcast</button>
+                    </div>
+                </form>
+                <% if (typeof announcement !== 'undefined' && announcement) { %>
+                    <div class="announce-active">
+                        <span>📡 Sedang tampil:</span>
+                        <em><%= announcement %></em>
+                        <form method="POST" action="/admin/broadcast/clear" style="display:inline">
+                            <button type="submit" class="btn btn-sm btn-danger">✕ Hentikan</button>
+                        </form>
+                    </div>
+                <% } %>
+            </div>
+
             <!-- SEDANG BERMAIN -->
             <% const playingRooms = rooms.filter(r => r.inProgress); %>
             <% if (playingRooms.length > 0) { %>
@@ -164,6 +184,7 @@
                                 <% }) %>
                             </div>
                             <div class="admin-room-actions">
+                                <a href="/admin/room/<%= room.id %>/monitor" class="btn btn-sm btn-primary">👁 Pantau</a>
                                 <a href="/admin/room/<%= room.id %>/edit" class="btn btn-sm btn-outline">Edit</a>
                                 <form method="POST" action="/admin/room/<%= room.id %>/reset" style="display:inline" onsubmit="return confirm('Reset room? Semua player akan dikeluarkan & fee dikembalikan.')">
                                     <button type="submit" class="btn btn-sm btn-warning">Reset</button>

@@ -108,7 +108,6 @@ router.get('/room/:id/monitor', requireAdmin, async (req, res) => {
         const [rooms] = await req.db.execute('SELECT * FROM rooms WHERE id = ?', [req.params.id]);
         const room = rooms[0];
         if (!room) return res.redirect('/admin');
-        if (!room.inProgress) return res.redirect('/admin');
 
         const [players] = await req.db.execute('SELECT userId, name, joinedAt FROM room_players WHERE roomId = ?', [room.id]);
         room.players = players;
@@ -124,6 +123,34 @@ router.get('/room/:id/monitor', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('Error loading admin monitor:', err);
+        res.redirect('/admin');
+    }
+});
+
+// ==========================================
+// BROADCAST ANNOUNCEMENT (TEXT BERJALAN)
+// ==========================================
+router.post('/broadcast', requireAdmin, async (req, res) => {
+    const text = String((req.body && req.body.text) || '').trim();
+    if (!text) return res.redirect('/admin');
+
+    try {
+        await req.db.execute('INSERT INTO announcements (text, createdAt) VALUES (?, NOW())', [text]);
+        req.io.emit('global-announcement', { text });
+        res.redirect('/admin');
+    } catch (err) {
+        console.error('Error broadcasting announcement:', err);
+        res.redirect('/admin');
+    }
+});
+
+router.post('/broadcast/clear', requireAdmin, async (req, res) => {
+    try {
+        await req.db.execute('DELETE FROM announcements');
+        req.io.emit('global-announcement', { text: '' });
+        res.redirect('/admin');
+    } catch (err) {
+        console.error('Error clearing announcement:', err);
         res.redirect('/admin');
     }
 });

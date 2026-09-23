@@ -1184,6 +1184,69 @@ body::before {
     cursor: pointer;
 }
 
+.announce-marquee {
+    position: sticky;
+    top: 0;
+    z-index: 3000;
+    width: 100%;
+    overflow: hidden;
+    background: linear-gradient(90deg, #b8860b, #d4af37, #b8860b);
+    color: #1a0e00;
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    padding: 8px 0;
+}
+
+.announce-track {
+    display: inline-flex;
+    will-change: transform;
+    animation: announce-scroll 20s linear infinite;
+}
+
+.announce-track span {
+    padding: 0 80px;
+}
+
+@keyframes announce-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.announce-active {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 10px;
+    color: #f5d36f;
+    font-size: 14px;
+}
+
+.announce-active em {
+    flex: 1;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.auth-page .announce-marquee,
+.chat-page .announce-marquee {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+.chat-page:has(.announce-marquee) .chat-container {
+    padding-top: 34px;
+}
+
 .chat-preview {
     display: flex;
     align-items: center;

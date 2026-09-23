@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="auth-page">
+    <% if (typeof announcement !== 'undefined' && announcement) { %>
+        <div class="announce-marquee"><div class="announce-track"><span><%= announcement %></span><span><%= announcement %></span></div></div>
+    <% } %>
     <div class="auth-container">
         <div class="auth-logo">🎮</div>
         <h1>RICO FT</h1>

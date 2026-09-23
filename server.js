@@ -39,6 +39,17 @@ app.use((req, res, next) => {
 // Store io on app for admin routes
 app.set('io', io);
 
+// Load latest announcement for marquee bar
+app.use(async (req, res, next) => {
+    try {
+        const [rows] = await req.db.execute('SELECT text FROM announcements ORDER BY id DESC LIMIT 1');
+        res.locals.announcement = rows[0]?.text || null;
+    } catch (err) {
+        res.locals.announcement = null;
+    }
+    next();
+});
+
 // ==========================================
 // ROUTES
 // ==========================================
