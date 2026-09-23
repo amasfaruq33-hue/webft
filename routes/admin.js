@@ -361,7 +361,26 @@ router.post('/room/create', requireAdmin, async (req, res) => {
 });
 
 // ==========================================
-// DELETE ROOM
+// DELETE ROOM (WITHOUT REFUND)
+// ==========================================
+router.post('/room/:id/delete-no-refund', requireAdmin, async (req, res) => {
+    try {
+        const [rooms] = await req.db.execute('SELECT * FROM rooms WHERE id = ?', [req.params.id]);
+        const room = rooms[0];
+        if (!room) return res.redirect('/admin');
+
+        // No refund — fee stays with platform
+        await req.db.execute('DELETE FROM rooms WHERE id = ?', [room.id]);
+
+        res.redirect('/admin');
+    } catch (err) {
+        console.error('Error deleting room (no refund):', err);
+        res.redirect('/admin');
+    }
+});
+
+// ==========================================
+// DELETE ROOM (WITH REFUND)
 // ==========================================
 router.post('/room/:id/delete', requireAdmin, async (req, res) => {
     try {

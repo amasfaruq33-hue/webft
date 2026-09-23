@@ -190,8 +190,11 @@
                                     <button type="submit" class="btn btn-sm btn-warning">Reset</button>
                                 </form>
                                 <form method="POST" action="/admin/room/<%= room.id %>/delete" style="display:inline" onsubmit="return confirm('HAPUS room ini permanen? Semua player akan dikeluarkan & fee dikembalikan.')">
-                                    <button type="submit" class="btn btn-sm btn-danger">🗑 Hapus</button>
-                                </form>
+                                        <button type="submit" class="btn btn-sm btn-danger">🗑 Hapus (refund)</button>
+                                    </form>
+                                    <form method="POST" action="/admin/room/<%= room.id %>/delete-no-refund" style="display:inline" onsubmit="return confirm('HAPUS room ini TANPA mengembalikan fee pemain. Lanjutkan?')">
+                                        <button type="submit" class="btn btn-sm btn-danger-alt">🗑 Hapus (tanpa refund)</button>
+                                    </form>
                             </div>
                         </div>
                     <% }) %>
